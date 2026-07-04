@@ -1,0 +1,50 @@
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE compose file — copy it to get started:
+#
+#     cp docker-compose.example.yml docker-compose.local.yml
+#     cp .env.example .env.local          # then fill in the values
+#     make up                             # or: docker compose -f docker-compose.local.yml --env-file .env.local up -d
+#
+# docker-compose.local.yml and .env.local are gitignored: they hold YOUR
+# machine's values and are never committed.
+#
+# NOTE: training does NOT run in Docker — MLX needs Metal (the Apple GPU),
+# which containers on macOS cannot access. This stack only provides the
+# tracking (MLflow) and orchestration (ZenML) servers; the pipeline runs
+# natively on the host and reports to them.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # Experiment tracking + model registry. UI at http://localhost:${MLFLOW_HOST_PORT}
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.10.1
+    container_name: mlx-pipeline-mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+    ports:
+      # Host port comes from .env.local. Default 5001 because macOS AirPlay
+      # Receiver occupies port 5000.
+      - "${MLFLOW_HOST_PORT:-5001}:5000"
+    volumes:
+      # Runs/metrics/artifacts persist here across restarts (gitignored).
+      - ./volumes/mlflow:/mlflow
+    restart: unless-stopped
+
+  # Pipeline orchestration server + dashboard. UI at http://localhost:${ZENML_HOST_PORT}
+  zenml:
+    image: zenmldocker/zenml-server:latest
+    container_name: mlx-pipeline-zenml
+    ports:
+      - "${ZENML_HOST_PORT:-8080}:8080"
+    environment:
+      # Auto-activates the server on first boot so no setup wizard is needed.
+      ZENML_SERVER_AUTO_ACTIVATE: "1"
+    volumes:
+      # Pipeline-run metadata persists here (gitignored).
+      - ./volumes/zenml:/zenml/.zenconfig
+    restart: unless-stopped

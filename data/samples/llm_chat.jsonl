@@ -1,0 +1,20 @@
+{"messages": [{"role": "user", "content": "What does LoRA stand for?"}, {"role": "assistant", "content": "LoRA stands for Low-Rank Adaptation, a parameter-efficient fine-tuning method."}]}
+{"messages": [{"role": "user", "content": "Why use MLX on a Mac?"}, {"role": "assistant", "content": "MLX is optimized for Apple Silicon's unified memory, so training runs directly on the Mac's GPU."}]}
+{"messages": [{"role": "user", "content": "What is a quality gate in an ML pipeline?"}, {"role": "assistant", "content": "A quality gate compares evaluation metrics against thresholds and blocks publishing if they fail."}]}
+{"messages": [{"role": "user", "content": "What does the fuse step do?"}, {"role": "assistant", "content": "It merges the trained LoRA adapter back into the base model weights."}]}
+{"messages": [{"role": "user", "content": "Where are experiments tracked?"}, {"role": "assistant", "content": "Experiments are tracked in MLflow, running locally via docker compose."}]}
+{"messages": [{"role": "user", "content": "What does LoRA stand for?"}, {"role": "assistant", "content": "LoRA stands for Low-Rank Adaptation, a parameter-efficient fine-tuning method."}]}
+{"messages": [{"role": "user", "content": "Why use MLX on a Mac?"}, {"role": "assistant", "content": "MLX is optimized for Apple Silicon's unified memory, so training runs directly on the Mac's GPU."}]}
+{"messages": [{"role": "user", "content": "What is a quality gate in an ML pipeline?"}, {"role": "assistant", "content": "A quality gate compares evaluation metrics against thresholds and blocks publishing if they fail."}]}
+{"messages": [{"role": "user", "content": "What does the fuse step do?"}, {"role": "assistant", "content": "It merges the trained LoRA adapter back into the base model weights."}]}
+{"messages": [{"role": "user", "content": "Where are experiments tracked?"}, {"role": "assistant", "content": "Experiments are tracked in MLflow, running locally via docker compose."}]}
+{"messages": [{"role": "user", "content": "What does LoRA stand for?"}, {"role": "assistant", "content": "LoRA stands for Low-Rank Adaptation, a parameter-efficient fine-tuning method."}]}
+{"messages": [{"role": "user", "content": "Why use MLX on a Mac?"}, {"role": "assistant", "content": "MLX is optimized for Apple Silicon's unified memory, so training runs directly on the Mac's GPU."}]}
+{"messages": [{"role": "user", "content": "What is a quality gate in an ML pipeline?"}, {"role": "assistant", "content": "A quality gate compares evaluation metrics against thresholds and blocks publishing if they fail."}]}
+{"messages": [{"role": "user", "content": "What does the fuse step do?"}, {"role": "assistant", "content": "It merges the trained LoRA adapter back into the base model weights."}]}
+{"messages": [{"role": "user", "content": "Where are experiments tracked?"}, {"role": "assistant", "content": "Experiments are tracked in MLflow, running locally via docker compose."}]}
+{"messages": [{"role": "user", "content": "What does LoRA stand for?"}, {"role": "assistant", "content": "LoRA stands for Low-Rank Adaptation, a parameter-efficient fine-tuning method."}]}
+{"messages": [{"role": "user", "content": "Why use MLX on a Mac?"}, {"role": "assistant", "content": "MLX is optimized for Apple Silicon's unified memory, so training runs directly on the Mac's GPU."}]}
+{"messages": [{"role": "user", "content": "What is a quality gate in an ML pipeline?"}, {"role": "assistant", "content": "A quality gate compares evaluation metrics against thresholds and blocks publishing if they fail."}]}
+{"messages": [{"role": "user", "content": "What does the fuse step do?"}, {"role": "assistant", "content": "It merges the trained LoRA adapter back into the base model weights."}]}
+{"messages": [{"role": "user", "content": "Where are experiments tracked?"}, {"role": "assistant", "content": "Experiments are tracked in MLflow, running locally via docker compose."}]}

@@ -1,0 +1,22 @@
+flavor: vlm             # selects the mlx-vlm backend in the train node
+model: mlx-community/Qwen2-VL-2B-Instruct-4bit
+
+data:
+  source: data/samples/vlm_pairs.jsonl  # {"image": path, "prompt": ..., "completion": ...}
+  format: image-text
+  valid_split: 0.1
+  test_split: 0.1
+
+train:
+  method: lora
+  rank: 8
+  iters: 200
+  batch_size: 1
+  learning_rate: 1.0e-5
+
+gate:
+  max_eval_loss: 3.0
+
+publish:
+  repo_id: your-org/qwen2-vl-2b-demo-lora
+  private: true
