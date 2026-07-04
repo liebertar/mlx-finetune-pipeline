@@ -1,4 +1,4 @@
-.PHONY: up down logs install test lint run-llm run-vlm run-embedding
+.PHONY: up down logs install test lint run-llm run-vlm run-embedding sweep-llm
 
 COMPOSE = docker compose -f docker-compose.local.yml --env-file .env.local
 
@@ -28,3 +28,6 @@ run-vlm:
 
 run-embedding:
 	python -m mlx_pipeline.run --config configs/embedding_sft.yaml
+
+sweep-llm:
+	python scripts/sweep.py --config configs/llm_lora.yaml

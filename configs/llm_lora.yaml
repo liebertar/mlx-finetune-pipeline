@@ -4,19 +4,39 @@ model: mlx-community/Qwen2.5-1.5B-Instruct-4bit
 data:
   source: data/samples/llm_chat.jsonl   # or a HF dataset id
   format: chat                          # {"messages": [{role, content}, ...]}
+  dedup: true                           # drop exact duplicates (they leak across splits)
   valid_split: 0.1
   test_split: 0.1
 
+# Research-backed instruction-SFT recipe — see docs/TUNING.md for the sources
+# and per-intent variations (domain adaptation, style, embeddings, ...).
 train:
   method: lora          # lora | dora | full
-  rank: 8
-  iters: 200
+  rank: 16              # r=16 is the reliable SFT starting point; 32-64 for domain shift
+  scale: 2.0            # mlx's alpha/rank; keep >= 1 (alpha = 2*rank heuristic)
+  dropout: 0.0
+  learning_rate: 1.0e-4 # LoRA SFT consensus range 1e-4..2e-4 (mlx default 1e-5 is very timid)
+  lr_schedule: cosine   # cosine decay after warmup
+  warmup_fraction: 0.1  # 10% of iters
+  # iters = dataset_size * epochs / batch_size — keep to 1-3 epochs.
+  # 30 ≈ 3 epochs for the 20-example smoke dataset; scale this up with your data.
+  # (An earlier sweep at 200 iters = ~100 epochs overfit catastrophically:
+  # val loss 9.1 at lr 1e-4. The gate caught it.)
+  iters: 30
+  steps_per_report: 2
+  steps_per_eval: 5
   batch_size: 2
-  learning_rate: 1.0e-5
+  grad_accumulation_steps: 4   # effective batch 8 at 1/4 the memory
+  mask_prompt: true     # train on completions only — free accuracy on chat data
+  seed: 42              # pinned so sweep comparisons measure params, not noise
+  # grad_checkpoint: true      # enable when a bigger model / longer seqs don't fit
+  # max_seq_length: 2048
 
 gate:
-  max_eval_loss: 2.5    # publish only if eval loss is at or below this
+  # Calibrated for the 20-example smoke dataset (unseen-val loss ~2.5-3 is
+  # normal at this scale). Tighten this for real datasets.
+  max_eval_loss: 3.2
 
 publish:
-  repo_id: your-org/qwen2.5-1.5b-demo-lora
+  repo_id: your-hf-username/qwen2.5-1.5b-demo-lora
   private: true

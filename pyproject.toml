@@ -6,9 +6,12 @@ requires-python = ">=3.11"
 dependencies = [
     "mlx-lm>=0.31",
     "mlx-vlm>=0.4",
+    # mlx-lm 0.31 is incompatible with transformers 5.x (tokenizer registration API)
+    "transformers>=4.57,<5",
     "zenml[server]>=0.75",
     "mlflow>=3.0",
     "huggingface_hub>=0.30",
+    "matplotlib>=3.9",
     "datasets>=3.0",
     "pyyaml>=6.0",
 ]

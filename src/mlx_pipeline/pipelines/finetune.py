@@ -1,6 +1,9 @@
 """Wires the seven nodes into the DAG:
 
 ingest -> prepare -> train -> evaluate -> gate -> fuse -> publish
+
+`publish_enabled=False` stops after the gate — used by hyperparameter sweeps
+that only need train/eval metrics.
 """
 
 from zenml import pipeline
@@ -10,8 +13,11 @@ from mlx_pipeline.steps import evaluate, fuse, gate, ingest, prepare, publish, t
 
 
 @pipeline
-def finetune_pipeline(cfg: PipelineConfig, work_dir: str):
-    records = ingest(source=cfg.data["source"], fmt=cfg.data["format"])
+def finetune_pipeline(cfg: PipelineConfig, work_dir: str, publish_enabled: bool = True):
+    records = ingest(
+        source=cfg.data["source"], fmt=cfg.data["format"],
+        dedup=cfg.data.get("dedup", True),
+    )
     dataset_dir = prepare(
         records=records,
         valid_split=cfg.data.get("valid_split", 0.1),
@@ -26,11 +32,16 @@ def finetune_pipeline(cfg: PipelineConfig, work_dir: str):
         work_dir=work_dir,
     )
     metrics = evaluate(
-        flavor=cfg.flavor, model=cfg.model, dataset_dir=dataset_dir, adapter_path=adapter_path
+        flavor=cfg.flavor, model=cfg.model, dataset_dir=dataset_dir,
+        adapter_path=adapter_path, work_dir=work_dir,
     )
     passed = gate(metrics=metrics, thresholds=cfg.gate)
-    model_dir = fuse(
-        flavor=cfg.flavor, model=cfg.model, adapter_path=adapter_path, work_dir=work_dir,
-        after=[passed],
-    )
-    publish(model_dir=model_dir, base_model=cfg.model, metrics=metrics, publish_cfg=cfg.publish)
+    if publish_enabled:
+        model_dir = fuse(
+            flavor=cfg.flavor, model=cfg.model, adapter_path=adapter_path, work_dir=work_dir,
+            after=[passed],
+        )
+        publish(
+            model_dir=model_dir, base_model=cfg.model, metrics=metrics,
+            publish_cfg=cfg.publish, train_cfg=cfg.train, work_dir=work_dir,
+        )

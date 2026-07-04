@@ -69,6 +69,11 @@ The same pipeline definition serves three flavors, selected by config file:
 - `configs/vlm_lora.yaml` — vision-language tuning (mlx-vlm)
 - `configs/embedding_sft.yaml` — NLP embedding-model tuning
 
+The configs ship with research-backed defaults; **[docs/TUNING.md](docs/TUNING.md)**
+is the recipe book — which rank/LR/schedule combinations work for which intent,
+with sources. `make sweep-llm` compares combinations empirically on your data
+and feeds the winner (plus the comparison chart) into the published model card.
+
 ## Quickstart
 
 Prereqs: an Apple Silicon Mac, [uv](https://docs.astral.sh/uv/), Docker Desktop

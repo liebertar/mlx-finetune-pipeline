@@ -3,8 +3,12 @@
 Thresholds come from the `gate:` section of the config:
   max_eval_loss     -> metrics["eval_loss"] must be <= this
   min_eval_accuracy -> metrics["eval_accuracy"] must be >= this
+
+The verdict (and each failure reason) is recorded in MLflow so runs are
+auditable even after they're pruned locally.
 """
 
+import mlflow
 from zenml import step
 
 
@@ -26,6 +30,8 @@ def check_gate(metrics: dict, thresholds: dict) -> tuple[bool, list[str]]:
 @step
 def gate(metrics: dict, thresholds: dict) -> bool:
     passed, failures = check_gate(metrics, thresholds)
-    if not passed:
+    mlflow.log_metric("gate_passed", int(passed))
+    if failures:
+        mlflow.set_tag("gate_failures", "; ".join(failures))
         raise RuntimeError("quality gate failed: " + "; ".join(failures))
     return True
