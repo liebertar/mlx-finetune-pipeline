@@ -76,6 +76,34 @@ def test_generator_gold_is_extractable(tmp_path):
     assert difficulties == {"easy", "hard"}
 
 
+def test_refine_passport_vs_employee_id():
+    from mlx_pipeline.pii_eval import refine_entities
+
+    assert refine_entities([{"type": "사번", "text": "S20310713"}]) == \
+        [{"type": "여권번호", "text": "S20310713"}]          # 영문+8자리 = 여권
+    assert refine_entities([{"type": "여권번호", "text": "A505213"}]) == \
+        [{"type": "사번", "text": "A505213"}]                # 영문+6자리 = 사번
+    assert refine_entities([{"type": "사번", "text": "EMP-2024-1234"}]) == \
+        [{"type": "사번", "text": "EMP-2024-1234"}]          # 규칙 밖은 그대로
+
+
+def test_refine_rrn_gender_digit():
+    from mlx_pipeline.pii_eval import refine_entities
+
+    assert refine_entities([{"type": "주민등록번호", "text": "850712-5123456"}])[0]["type"] \
+        == "외국인등록번호"                                    # 5-8 = 외국인
+    assert refine_entities([{"type": "외국인등록번호", "text": "850712-2123456"}])[0]["type"] \
+        == "주민등록번호"                                      # 1-4 = 내국인
+
+
+def test_refine_drops_department_as_title():
+    from mlx_pipeline.pii_eval import refine_entities
+
+    assert refine_entities([{"type": "직책", "text": "인사팀"},
+                            {"type": "직책", "text": "부장"}]) == \
+        [{"type": "직책", "text": "부장"}]
+
+
 def test_josa_resolution():
     sys.path.insert(0, str(Path("scripts").resolve()))
     from generate_pii_dataset import _resolve_josa

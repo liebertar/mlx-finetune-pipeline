@@ -119,8 +119,22 @@ def extract_pii(text: str) -> list[dict]:
     match = re.search(r"\\{{.*\\}}", out, re.DOTALL)
     return json.loads(match.group(0))["entities"] if match else []
 
+def refine(entities):
+    # 형식 규칙 레이어: 한국 번호 체계는 규격이 유형을 결정합니다
+    out = []
+    for e in entities:
+        t, x = e["type"], e["text"]
+        if re.match(r"^[MS][0-9]{{8}}$", x): t = "여권번호"
+        elif re.match(r"^[A-Z][0-9]{{6}}$", x) and t == "여권번호": t = "사번"
+        m = re.match(r"^\\d{{6}}-([1-8])\\d{{6}}$", x)
+        if m and t in ("주민등록번호", "외국인등록번호"):
+            t = "주민등록번호" if m.group(1) in "1234" else "외국인등록번호"
+        if t == "직책" and x.endswith("팀"): continue
+        out.append({{"type": t, "text": x}})
+    return out
+
 def mask_pii(text: str) -> str:
-    for e in sorted(extract_pii(text), key=lambda e: -len(e["text"])):
+    for e in sorted(refine(extract_pii(text)), key=lambda e: -len(e["text"])):
         text = text.replace(e["text"], f"[{{e['type']}}]")
     return text
 

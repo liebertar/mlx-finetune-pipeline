@@ -54,6 +54,38 @@ def parse_entities(generated: str) -> list[dict]:
     ]
 
 
+PASSPORT_RE = re.compile(r"^[MS][0-9]{8}$")
+EMP_ID_RE = re.compile(r"^[A-Z][0-9]{6}$")
+RRN_RE = re.compile(r"^\d{6}-([1-8])\d{6}$")
+
+
+def refine_entities(entities: list[dict]) -> list[dict]:
+    """결정론적 형식 규칙 레이어 (모델 출력 후처리, 제품 구성요소).
+
+    한국 개인정보 번호 체계는 형식이 유형을 결정한다 — 모델이 문맥 단서
+    없이 헷갈린 유형을 규격으로 교정한다:
+      영문+8자리 -> 여권번호 / 영문+6자리 -> 사번
+      주민/외국인등록번호는 성별 자리(1-4 vs 5-8)가 결정
+      "~팀"으로 끝나는 직책은 부서명 오탐 -> 제거
+    """
+    refined = []
+    for e in entities:
+        etype, text = e["type"], e["text"]
+        if etype in ("사번", "여권번호"):
+            if PASSPORT_RE.match(text):
+                etype = "여권번호"
+            elif EMP_ID_RE.match(text):
+                etype = "사번"
+        elif etype in ("주민등록번호", "외국인등록번호"):
+            match = RRN_RE.match(text)
+            if match:
+                etype = "주민등록번호" if match.group(1) in "1234" else "외국인등록번호"
+        elif etype == "직책" and text.endswith("팀"):
+            continue
+        refined.append({"type": etype, "text": text})
+    return refined
+
+
 def score(golds: list[list[dict]], preds: list[list[dict]]) -> dict:
     """Per-type and aggregate P/R/F1 over parallel lists of entity lists."""
     tp: dict = defaultdict(int)
@@ -153,7 +185,7 @@ def run_pii_eval(
         out = generate(model, tokenizer, prompt=prompt, max_tokens=max_tokens,
                        sampler=sampler, verbose=False)
         golds.append(rec["gold"])
-        preds.append(parse_entities(out))
+        preds.append(refine_entities(parse_entities(out)))
         if len(samples) < 5:
             samples.append({"prompt": rec["prompt"], "generated": out, "gold": rec["gold"]})
         if progress_every and (i + 1) % progress_every == 0:
