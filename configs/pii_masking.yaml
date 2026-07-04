@@ -1,5 +1,7 @@
 flavor: llm
-model: mlx-community/Qwen2.5-1.5B-Instruct-4bit
+# 3B: try #7에서 승격 — 1.5B는 미학습 문형에서 엔티티 생략/유형 혼동이
+# 반복됨 (try #5/#6 오답 분석). 낯선 프레임 강건성이 필요.
+model: mlx-community/Qwen2.5-3B-Instruct-4bit
 
 data:
   source: data/samples/korean_pii.jsonl   # scripts/generate_pii_dataset.py --n 3000 --seed 7
@@ -27,21 +29,26 @@ train:
 eval:
   type: pii             # generation-based per-type precision/recall/F1
   baseline: true        # also score the untuned base model (zero-shot)
+  # 정답지 고정: 학습 풀을 다시 생성해도 채점은 항상 이 동결본으로
+  fixed_test: data/samples/korean_pii_goldset.jsonl
   # unseen sentence forms (never in training) — the generalization number
   oot_test: data/samples/korean_pii_oot.jsonl
 
 gate:
-  # 배포 기준 (사용자 지정): 고정 골드셋에서 98% 이상일 때만 업로드
-  min_f1: 0.98          # micro F1, fixed gold set
-  min_macro_f1: 0.98    # macro F1 — 유형별 균형까지 요구
-  min_precision: 0.97   # 과잉 마스킹(원문 훼손) 방지
-  min_recall: 0.97      # 누락(유출) 방지
+  # 배포 기준: 실전 지표는 OOT(미학습 문형)다. in-distribution 골드셋 만점은
+  # 필요조건일 뿐 — 낯선 문형에서 98%를 못 넘으면 배포하지 않는다.
+  min_oot_f1: 0.98
+  min_oot_precision: 0.97
+  min_oot_recall: 0.97      # 누락 = 유출. recall이 가장 아픈 지표
+  min_f1: 0.98              # in-dist 골드셋도 여전히 요구
+  min_macro_f1: 0.98
 
 publish:
   repo_id: your-hf-username/korean-pii-extractor-mlx
   private: true
   card_lang: ko         # 한국어 모델 카드 (성능표·차트·데이터 명세 포함)
   goldset_repo: your-hf-username/korean-pii-goldset   # 정답지 고정본 업로드
+  goldset_file: data/samples/korean_pii_goldset.jsonl # 동결본 (재생성 무관)
 
 sweep:
   select: f1

@@ -31,14 +31,17 @@ tags:
 운전면허번호, 전화번호, 이메일 주소, 계좌번호, 신용카드번호, 사업자등록번호,
 주소, 우편번호, 회사명, 직책, 사번
 
-## 성능 (고정 골드셋 {n_test}건)
+## 성능
 
-| 지표 | 파인튜닝 | 베이스(zero-shot) | 개선 |
+**실전 지표는 미학습 문형(OOT) 열입니다** — 학습에 없던 문장 형태에서의
+성능. 골드셋 열은 문형이 학습 분포와 같아(값만 교체) 상한선에 가깝습니다.
+
+| 지표 | **미학습 문형 OOT ({n_oot}건)** | 골드셋 ({n_test}건, 문형=학습 분포) | 베이스 zero-shot |
 |---|---|---|---|
-| **Precision (micro)** | **{t_p:.3f}** | {b_p:.3f} | +{d_p:.3f} |
-| **Recall (micro)** | **{t_r:.3f}** | {b_r:.3f} | +{d_r:.3f} |
-| **F1 (micro)** | **{t_f:.3f}** | {b_f:.3f} | +{d_f:.3f} |
-| **F1 (macro)** | **{t_mf:.3f}** | {b_mf:.3f} | +{d_mf:.3f} |
+| **Precision (micro)** | **{o_p:.3f}** | {t_p:.3f} | {b_p:.3f} |
+| **Recall (micro)** | **{o_r:.3f}** | {t_r:.3f} | {b_r:.3f} |
+| **F1 (micro)** | **{o_f:.3f}** | {t_f:.3f} | {b_f:.3f} |
+| **F1 (macro)** | **{o_mf:.3f}** | {t_mf:.3f} | {b_mf:.3f} |
 
 난이도별 (골드셋에 포함된 애매/혼동 유발 케이스 분리 채점):
 
@@ -207,10 +210,15 @@ def render_korean_pii_card(
     goldset_link = (f"[`{goldset_repo}`](https://huggingface.co/datasets/{goldset_repo})"
                     if goldset_repo else "_(비공개)_")
 
+    oot = report.get("oot", {})
     return CARD.format(
         repo_id=repo_id, base_model=base_model,
         n_total=sum(splits.values()), n_train=splits["train"],
-        n_valid=splits["valid"], n_test=splits["test"],
+        n_valid=splits["valid"],
+        n_test=tuned.get("n_examples", splits["test"]),  # frozen gold set size
+        n_oot=oot.get("n_examples", 0),
+        o_p=g(oot, "precision"), o_r=g(oot, "recall"),
+        o_f=g(oot, "f1"), o_mf=g(oot, "macro_f1"),
         t_p=g(tuned, "precision"), t_r=g(tuned, "recall"),
         t_f=g(tuned, "f1"), t_mf=g(tuned, "macro_f1"),
         b_p=g(base, "precision"), b_r=g(base, "recall"),

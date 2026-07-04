@@ -125,6 +125,78 @@ TEMPLATES = [
     ("법인차량 배정을 위해 운전면허번호 {운전면허번호}[과와] 사번 {사번}[을를] 제출하세요.", ["운전면허번호", "사번"]),
     ("체류 연장 신청: 외국인등록번호 {외국인등록번호}, 연락처 {전화번호}, 거주지 {주소}", ["외국인등록번호", "전화번호", "주소"]),
     ("환전 신청서에 여권번호 {여권번호}[과와] 외국인등록번호 {외국인등록번호}[이가] 모두 필요합니다.", ["여권번호", "외국인등록번호"]),
+    # ── register variety: SMS/알림톡 ──
+    ("[Web발신] {사람 이름}님, {신용카드번호} 카드로 38,500원 결제 완료.", ["사람 이름", "신용카드번호"]),
+    ("(광고) {회사명}입니다! 상담 예약: {전화번호} 수신거부 080-000-0000", ["회사명", "전화번호"]),
+    ("택배 도착 안내 - {주소} 문 앞 보관. 문의 {전화번호}", ["주소", "전화번호"]),
+    # ── 채팅체/반말 ──
+    ("야 {사람 이름} 번호 {전화번호} 맞지? 메일도 알려줘 {이메일 주소}로 보내면 돼?", ["사람 이름", "전화번호", "이메일 주소"]),
+    ("나 이사감 ㅋㅋ 새 주소 {주소}임 우편번호는 {우편번호}", ["주소", "우편번호"]),
+    ("월급 계좌 바꿈. {계좌번호}로 이체 부탁", ["계좌번호"]),
+    # ── 공문서체 ──
+    ("위 본인 {사람 이름}(주민등록번호 {주민등록번호})은 상기 내용이 사실과 다름없음을 확인합니다.",
+     ["사람 이름", "주민등록번호"]),
+    ("제2026-45호 관련, 귀사({회사명}, 사업자등록번호 {사업자등록번호})에 아래와 같이 통보합니다.",
+     ["회사명", "사업자등록번호"]),
+    ("신청인 {사람 이름}의 여권번호는 {여권번호}이며 유효기간 내 서류임을 증명합니다.", ["사람 이름", "여권번호"]),
+    # ── 폼/표 서식 ──
+    ("이름: {사람 이름}\n연락처: {전화번호}\n이메일: {이메일 주소}\n주소: {주소}",
+     ["사람 이름", "전화번호", "이메일 주소", "주소"]),
+    ("■ 예금주: {사람 이름} ■ 은행/계좌: {계좌번호} ■ 연락처: {전화번호}", ["사람 이름", "계좌번호", "전화번호"]),
+    ("성명(한글): {사람 이름} | 외국인등록번호: {외국인등록번호} | 우편번호: {우편번호}",
+     ["사람 이름", "외국인등록번호", "우편번호"]),
+    ("차량 인수 확인서 — 인수인: {사람 이름} / 면허: {운전면허번호} / 서명일: 2026-07-04",
+     ["사람 이름", "운전면허번호"]),
+    # ── 콜센터 스크립트 ──
+    ("네 고객님, 본인확인을 위해 등록된 전화번호 {전화번호}[과와] 이메일 {이메일 주소} 맞으신가요?",
+     ["전화번호", "이메일 주소"]),
+    ("확인 감사합니다. 환불금은 {계좌번호} 계좌로 영업일 기준 3일 내 입금됩니다, {사람 이름} 고객님.",
+     ["계좌번호", "사람 이름"]),
+    # ── 사내 로그/시스템체 ──
+    ("[2026-07-04 09:12] user={사번} name={사람 이름} action=LOGIN_FAILED ip=10.0.3.7",
+     ["사번", "사람 이름"]),
+    ("승인요청 #8812 | 기안자: {직책} {사람 이름} | 참조: {이메일 주소}", ["직책", "사람 이름", "이메일 주소"]),
+    # ── 뉴스/보도자료체 ──
+    ("{회사명}[은는] 4일, 신임 대표에 {사람 이름} 전 {직책}[을를] 선임했다고 밝혔다.",
+     ["회사명", "사람 이름", "직책"]),
+    ("경찰은 용의 차량 소유주 {사람 이름}(면허번호 {운전면허번호})[을를] 소환 조사할 예정이다.",
+     ["사람 이름", "운전면허번호"]),
+    # ── 이메일 전문체 ──
+    ("{사람 이름} {직책}님께,\n첨부 계약서에 서명 후 {이메일 주소}로 회신 부탁드립니다.\n감사합니다.",
+     ["사람 이름", "직책", "이메일 주소"]),
+    ("안녕하세요, {회사명} {직책} {사람 이름}입니다. 세금계산서는 사업자번호 {사업자등록번호} 기준으로 발행되었습니다.",
+     ["회사명", "직책", "사람 이름", "사업자등록번호"]),
+    # ── 예약/주문 확인 ──
+    ("예약이 확정되었습니다. 예약자 {사람 이름}, 여권번호 {여권번호}, 탑승일 7월 20일.", ["사람 이름", "여권번호"]),
+    ("주문 #20260704-88 결제수단 {신용카드번호}, 배송지 {주소} (우편번호 {우편번호})",
+     ["신용카드번호", "주소", "우편번호"]),
+    # ── 관례 교정: 이름 뒤 괄호 (이름(연락처), 이름(사번), 이름(메일)) ──
+    ("문의 고객 {사람 이름}({전화번호})[이가] 재연락을 요청했습니다.", ["사람 이름", "전화번호"]),
+    ("출입증 재발급 대상: {사람 이름}({사번}), 수령 장소는 1층 안내데스크입니다.", ["사람 이름", "사번"]),
+    ("작성자 {사람 이름}({이메일 주소})의 승인 이력을 확인해 주세요.", ["사람 이름", "이메일 주소"]),
+    ("강사 {사람 이름}({전화번호}) 섭외 완료, 강의료는 {계좌번호}로 지급.", ["사람 이름", "전화번호", "계좌번호"]),
+    # ── 관례 교정: 이름+의 (소유격) ──
+    ("{사람 이름}의 비상연락망을 {전화번호}로 갱신했습니다.", ["사람 이름", "전화번호"]),
+    ("{사람 이름}의 급여계좌({계좌번호}) 변경 신청이 접수되었습니다.", ["사람 이름", "계좌번호"]),
+    ("신입사원 {사람 이름}의 사번은 {사번}로 발급되었습니다.", ["사람 이름", "사번"]),
+    # ── 관례 교정: 담당/수식어 + 직책 (골드는 직책만) ──
+    ("정산 담당 {직책} {사람 이름}에게 전달 완료했습니다.", ["직책", "사람 이름"]),
+    ("행사 총괄 {직책} {사람 이름}[이가] 최종 승인 권한을 갖습니다.", ["직책", "사람 이름"]),
+    ("업무 인계는 전임 {직책} {사람 이름}[과와] 협의하세요.", ["직책", "사람 이름"]),
+    # ── 관례 교정: 부서명은 직책이 아님 ──
+    ("총무팀 {직책} {사람 이름}[이가] 비품 신청을 승인했습니다.", ["직책", "사람 이름"]),
+    ("개발팀 소속 {사람 이름} {직책}의 내선을 {전화번호}로 변경했습니다.", ["사람 이름", "직책", "전화번호"]),
+    ("영업팀 {사람 이름}({사번}) 인사평가 면담이 예정되어 있습니다.", ["사람 이름", "사번"]),
+    # ── 관례 교정: 괄호 속 숫자-사번 (전화번호 아님) ──
+    ("근태 오류 정정 요청 (사번 {사번}) 처리되었습니다. 문의는 {전화번호}.", ["사번", "전화번호"]),
+    ("보안 교육 미이수자 (사번 {사번}) {사람 이름}, 기한 내 이수 바랍니다.", ["사번", "사람 이름"]),
+    # ── 프레임 커버리지: 슬래시 헤더(부서 포함), 문장 끝 엔티티 ──
+    ("결재선: {회사명} 재무팀 / 기안: {사람 이름} {직책} / 협조: 법무팀", ["회사명", "사람 이름", "직책"]),
+    ("받는이: 구매팀 / 보내는이: {직책} {사람 이름} / 회신처: {이메일 주소}", ["직책", "사람 이름", "이메일 주소"]),
+    ("점검 결과 이상 없음. 추가 문의는 시설관리 {사람 이름}, {전화번호}", ["사람 이름", "전화번호"]),
+    ("상담 종료 후 만족도 조사 링크가 발송됩니다. 수신 번호: {전화번호}", ["전화번호"]),
+    ("서류 미비 시 반송됩니다. 반송지: {주소}, 우편번호 {우편번호}", ["주소", "우편번호"]),
+    ("긴급 상황 시 아래 번호로 즉시 연락 바랍니다: {전화번호}", ["전화번호"]),
 ]
 
 # Out-of-template gold set: sentence forms NEVER used in training data.
@@ -178,6 +250,9 @@ NEGATIVES = [
     "프로젝트 마감 기한이 다음 주 금요일로 연장되었습니다.",
     "회의록은 공유 드라이브의 팀 폴더에 업로드되어 있습니다.",
     "이번 워크숍 장소는 추후 공지 예정입니다.",
+    "인사팀에서 하반기 조직개편 안내 메일을 발송했습니다.",
+    "총무팀과 재무팀이 예산 조정 회의를 진행합니다.",
+    "개발팀 스프린트 회고는 금요일 오후로 옮겨졌습니다.",
 ]
 
 # Ambiguous cases: PII lookalikes that must NOT be extracted (invoice/order
@@ -198,7 +273,14 @@ HARD_TEMPLATES = [
 ]
 
 
-def make_example(rng: random.Random, gens: dict) -> dict:
+TYPE_TO_TEMPLATES = None  # built lazily: type -> templates containing it
+
+
+def make_example(rng: random.Random, gens: dict, type_counts: dict | None = None) -> dict:
+    global TYPE_TO_TEMPLATES
+    if TYPE_TO_TEMPLATES is None:
+        TYPE_TO_TEMPLATES = {t: [tpl for tpl in TEMPLATES if t in tpl[1]] for t in TYPES}
+    type_counts = type_counts if type_counts is not None else {}
     roll = rng.random()
     if roll < 0.08:
         text, entities, difficulty = rng.choice(NEGATIVES), [], "easy"
@@ -207,12 +289,10 @@ def make_example(rng: random.Random, gens: dict) -> dict:
             template, slots = rng.choice(HARD_TEMPLATES)
             difficulty = "hard"
         else:
-            # oversample templates carrying rare types so per-type support in
-            # the fixed gold split stays statistically usable (>=25)
-            rare = {"운전면허번호", "외국인등록번호", "신용카드번호", "여권번호",
-                    "사업자등록번호", "우편번호", "주민등록번호"}
-            weights = [1 + 3 * len(rare & set(slots)) for _, slots in TEMPLATES]
-            template, slots = rng.choices(TEMPLATES, weights=weights, k=1)[0]
+            # per-type balancing: always serve the currently least-covered
+            # type, so no type's calibration starves as templates are added
+            target = min(TYPES, key=lambda t: type_counts.get(t, 0))
+            template, slots = rng.choice(TYPE_TO_TEMPLATES[target])
             difficulty = "easy"
         values, entities = [], []
         for slot in slots:
@@ -222,7 +302,9 @@ def make_example(rng: random.Random, gens: dict) -> dict:
         text = _fill(template, slots, values)
         # gold must be unambiguous: every entity string appears exactly once
         if any(text.count(e["text"]) != 1 for e in entities):
-            return make_example(rng, gens)
+            return make_example(rng, gens, type_counts)
+    for e in entities:
+        type_counts[e["type"]] = type_counts.get(e["type"], 0) + 1
     return {
         "messages": [
             {"role": "user", "content": INSTRUCTION + text},
@@ -269,9 +351,9 @@ def main():
 
     rng = random.Random(args.seed)
     gens = make_generators(rng)
-    seen, examples = set(), []
+    seen, examples, type_counts = set(), [], {}
     while len(examples) < args.n:
-        ex = make_oot_example(rng, gens) if args.oot else make_example(rng, gens)
+        ex = make_oot_example(rng, gens) if args.oot else make_example(rng, gens, type_counts)
         key = ex["messages"][0]["content"]
         if key in seen:
             continue

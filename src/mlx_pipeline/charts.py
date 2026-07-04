@@ -102,11 +102,16 @@ def plot_try_progression(rows: list[dict], out_path: str):
     ax.set_xlabel("try", color=INK_MUTED, fontsize=10)
     ax.set_ylabel("score", color=INK_MUTED, fontsize=10)
     xs = [r["try"] for r in rows]
-    for i, key in enumerate(("f1", "precision", "recall")):
-        ys = [r[key] for r in rows]
-        ax.plot(xs, ys, color=SERIES[i], linewidth=2, marker="o", markersize=5, label=key)
-        _label_line_end(ax, xs, ys, key, SERIES[i])
-    ax.set_xticks(xs, [f"#{r['try']}\n{r.get('label', '')}" for r in rows], fontsize=7)
+    # the story is generalization: plot OOT metrics as the primary series
+    # (fall back to in-dist keys for legacy rows), in-dist F1 as reference
+    for i, (key, name) in enumerate((("oot_f1", "OOT F1"), ("oot_precision", "OOT P"),
+                                     ("oot_recall", "OOT R"))):
+        ys = [r.get(key, r.get(key.removeprefix("oot_"))) for r in rows]
+        ax.plot(xs, ys, color=SERIES[i], linewidth=2, marker="o", markersize=5, label=name)
+        _label_line_end(ax, xs, ys, name, SERIES[i])
+    ref = [r.get("f1") for r in rows]
+    ax.plot(xs, ref, color=INK_MUTED, linewidth=1.2, linestyle="--", label="골드셋 F1 (참고)")
+    ax.set_xticks(xs, [f"#{r['try']}\n{r.get('label', '')}" for r in rows], fontsize=6)
     ax.set_ylim(0, 1.0)
     ax.legend(frameon=False, labelcolor=INK, fontsize=9, loc="lower right")
     fig.tight_layout()

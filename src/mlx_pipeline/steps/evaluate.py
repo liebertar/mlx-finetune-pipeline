@@ -69,7 +69,8 @@ def sample_generations(
     return samples
 
 
-def _append_ledger(metrics: dict, train_cfg: dict, dataset_dir: str, work_dir: Path):
+def _append_ledger(metrics: dict, train_cfg: dict, dataset_dir: str, work_dir: Path,
+                   model: str = ""):
     """Experiment ledger: one row per try, in try order, against the fixed gold
     set — the progression chart in the model card is drawn from this."""
     from mlx_pipeline.charts import plot_try_progression
@@ -79,9 +80,11 @@ def _append_ledger(metrics: dict, train_cfg: dict, dataset_dir: str, work_dir: P
     rows = ([json.loads(line) for line in ledger.read_text().splitlines()]
             if ledger.exists() else [])
     n_train = len((Path(dataset_dir) / "train.jsonl").read_text().splitlines())
-    label = (f"r{train_cfg.get('rank', '?')}-lr{train_cfg.get('learning_rate', '?')}"
+    size = next((p for p in model.split("-") if p.endswith("B")), "")
+    label = (f"{size + '-' if size else ''}r{train_cfg.get('rank', '?')}"
+             f"-lr{train_cfg.get('learning_rate', '?')}"
              f"-b{train_cfg.get('batch_size', '?')}-n{round(n_train / 1000, 1)}k")
-    rows.append({
+    row = {
         "try": len(rows) + 1,
         "label": label,
         "precision": metrics["precision"],
@@ -91,7 +94,12 @@ def _append_ledger(metrics: dict, train_cfg: dict, dataset_dir: str, work_dir: P
         "train_examples": n_train,
         "params": {k: train_cfg.get(k) for k in
                    ("rank", "learning_rate", "batch_size", "iters", "scale")},
-    })
+        "model": model,
+    }
+    for key in ("oot_f1", "oot_precision", "oot_recall"):
+        if key in metrics:
+            row[key] = metrics[key]
+    rows.append(row)
     with open(ledger, "a") as f:
         f.write(json.dumps(rows[-1], ensure_ascii=False) + "\n")
     plot_try_progression(rows, str(work_dir / "try_progression.png"))
@@ -110,7 +118,10 @@ def _evaluate_pii(model: str, dataset_dir: str, adapter_path: str, work_dir: str
     from mlx_pipeline.pii_eval import mask_text, run_pii_eval
 
     max_examples = eval_cfg.get("max_examples")
-    tuned = run_pii_eval(model, dataset_dir, adapter_path=adapter_path,
+    # the answer key never moves: score against the frozen gold set when
+    # configured, regardless of how the training pool was re-generated
+    test_source = eval_cfg.get("fixed_test", dataset_dir)
+    tuned = run_pii_eval(model, test_source, adapter_path=adapter_path,
                          max_examples=max_examples)
     report = {"tuned": tuned}
     metrics = {
@@ -133,7 +144,7 @@ def _evaluate_pii(model: str, dataset_dir: str, adapter_path: str, work_dir: str
     if eval_cfg.get("baseline", False):
         gc.collect()
         mx.clear_cache()
-        base = run_pii_eval(model, dataset_dir, adapter_path=None,
+        base = run_pii_eval(model, test_source, adapter_path=None,
                             max_examples=max_examples)
         report["baseline"] = base
         metrics["baseline_f1"] = base["f1"]
@@ -143,7 +154,7 @@ def _evaluate_pii(model: str, dataset_dir: str, adapter_path: str, work_dir: str
 
     work = Path(work_dir)
     (work / "pii_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
-    _append_ledger(metrics, train_cfg, dataset_dir, work)
+    _append_ledger(metrics, train_cfg, dataset_dir, work, model=model)
     demo = "\n\n---\n\n".join(
         f"**입력:** {s['prompt'].split('텍스트: ')[-1]}\n\n"
         f"**추출:** `{json.dumps([e for e in _safe_entities(s['generated'])], ensure_ascii=False)}`\n\n"

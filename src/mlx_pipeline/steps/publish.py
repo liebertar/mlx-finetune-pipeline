@@ -127,12 +127,15 @@ tags:
 """
 
 
-def _upload_goldset(api: "HfApi", goldset_repo: str, dataset_dir: str, private: bool):
+def _upload_goldset(api: "HfApi", goldset_repo: str, source: str, private: bool):
     """The fixed gold set ships as its own dataset repo so colleagues can
     re-score any model against the identical answer key."""
+    path = Path(source)
+    if path.suffix != ".jsonl":
+        path = path / "test.jsonl"
     api.create_repo(goldset_repo, repo_type="dataset", private=private, exist_ok=True)
     api.upload_file(
-        path_or_fileobj=str(Path(dataset_dir) / "test.jsonl"),
+        path_or_fileobj=str(path),
         path_in_repo="test.jsonl", repo_id=goldset_repo, repo_type="dataset",
     )
     api.upload_file(
@@ -188,6 +191,8 @@ def publish(
     private = publish_cfg.get("private", True)
     api.create_repo(repo_id, private=private, exist_ok=True)
     api.upload_folder(folder_path=model_dir, repo_id=repo_id)
-    if publish_cfg.get("goldset_repo") and dataset_dir:
-        _upload_goldset(api, publish_cfg["goldset_repo"], dataset_dir, private)
+    if publish_cfg.get("goldset_repo"):
+        source = publish_cfg.get("goldset_file") or dataset_dir
+        if source:
+            _upload_goldset(api, publish_cfg["goldset_repo"], source, private)
     return f"https://huggingface.co/{repo_id}"
