@@ -1,7 +1,7 @@
 flavor: llm
-# 3B: try #7에서 승격 — 1.5B는 미학습 문형에서 엔티티 생략/유형 혼동이
-# 반복됨 (try #5/#6 오답 분석). 낯선 프레임 강건성이 필요.
-model: mlx-community/Qwen2.5-3B-Instruct-4bit
+# 7B: try #12에서 승격 — 직책 라벨 경계(직급 vs 부서 vs 역할어)가 3B에서
+# 4차례 표적 데이터 수선에도 OOT P 0.60에 고착 (try #6/7/8/11 오답 분석).
+model: mlx-community/Qwen2.5-7B-Instruct-4bit
 
 data:
   source: data/samples/korean_pii.jsonl   # scripts/generate_pii_dataset.py --n 3000 --seed 7
