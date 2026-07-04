@@ -63,8 +63,13 @@ flowchart LR
 | `fuse` | Merge the LoRA adapter into the base weights and produce a distributable MLX model. |
 | `publish` | Upload model + auto-generated model card to the Hugging Face Hub. |
 
-The same pipeline definition serves three flavors, selected by config file:
+The same pipeline definition serves several flavors, selected by config file:
 
+- `configs/pii_masking.yaml` — **Korean PII extraction/masking** (the flagship):
+  synthetic data generator with fixed gold set, generation-based per-type
+  precision/recall/F1 with easy/hard breakdown, zero-shot baseline comparison,
+  experiment ledger with try-order progression chart, Korean model card, and
+  gold-set publication as a HF dataset
 - `configs/llm_lora.yaml` — LLM instruction tuning (mlx-lm)
 - `configs/vlm_lora.yaml` — vision-language tuning (mlx-vlm)
 - `configs/embedding_sft.yaml` — NLP embedding-model tuning

@@ -31,3 +31,12 @@ run-embedding:
 
 sweep-llm:
 	python scripts/sweep.py --config configs/llm_lora.yaml
+
+run-pii:
+	python -m mlx_pipeline.run --config configs/pii_masking.yaml
+
+sweep-pii:
+	python scripts/sweep.py --config configs/pii_masking.yaml
+
+pii-data:
+	python scripts/generate_pii_dataset.py --n 3000 --seed 7 --out data/samples/korean_pii.jsonl

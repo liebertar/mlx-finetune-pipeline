@@ -34,6 +34,7 @@ def finetune_pipeline(cfg: PipelineConfig, work_dir: str, publish_enabled: bool 
     metrics = evaluate(
         flavor=cfg.flavor, model=cfg.model, dataset_dir=dataset_dir,
         adapter_path=adapter_path, work_dir=work_dir, train_cfg=cfg.train,
+        eval_cfg=cfg.eval,
     )
     passed = gate(metrics=metrics, thresholds=cfg.gate)
     if publish_enabled:
@@ -44,4 +45,5 @@ def finetune_pipeline(cfg: PipelineConfig, work_dir: str, publish_enabled: bool 
         publish(
             model_dir=model_dir, base_model=cfg.model, metrics=metrics,
             publish_cfg=cfg.publish, train_cfg=cfg.train, work_dir=work_dir,
+            dataset_dir=dataset_dir,
         )

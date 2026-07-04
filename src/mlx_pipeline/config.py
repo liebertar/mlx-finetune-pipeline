@@ -14,8 +14,10 @@ class PipelineConfig:
     model: str
     data: dict = field(default_factory=dict)
     train: dict = field(default_factory=dict)
+    eval: dict = field(default_factory=dict)
     gate: dict = field(default_factory=dict)
     publish: dict = field(default_factory=dict)
+    sweep: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if self.flavor not in FLAVORS:

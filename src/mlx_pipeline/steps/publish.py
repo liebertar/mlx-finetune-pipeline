@@ -104,11 +104,48 @@ def render_model_card(
     )
 
 
+GOLDSET_CARD = """---
+language:
+- ko
+license: apache-2.0
+tags:
+  - pii
+  - korean
+  - gold-standard
+---
+
+# {repo_id}
+
+한국어 PII 추출 모델 평가용 **고정 골드셋**입니다. 시드 고정으로 생성되어
+불변이며, 모든 실험(try)은 이 세트로 채점됩니다. 약 15%는 의도적으로 애매한
+케이스(PII 유사 숫자, 다중 인명, 국제 전화 형식 등)입니다.
+
+- `test.jsonl` — 골드셋 본체 (chat 형식, assistant 턴이 정답 JSON)
+- 각 레코드의 `meta.difficulty` — easy / hard 구분
+
+*mlx-finetune-pipeline이 자동 생성·배포한 데이터셋입니다.*
+"""
+
+
+def _upload_goldset(api: "HfApi", goldset_repo: str, dataset_dir: str, private: bool):
+    """The fixed gold set ships as its own dataset repo so colleagues can
+    re-score any model against the identical answer key."""
+    api.create_repo(goldset_repo, repo_type="dataset", private=private, exist_ok=True)
+    api.upload_file(
+        path_or_fileobj=str(Path(dataset_dir) / "test.jsonl"),
+        path_in_repo="test.jsonl", repo_id=goldset_repo, repo_type="dataset",
+    )
+    api.upload_file(
+        path_or_fileobj=GOLDSET_CARD.format(repo_id=goldset_repo).encode(),
+        path_in_repo="README.md", repo_id=goldset_repo, repo_type="dataset",
+    )
+
+
 # no cache: uploading is a side effect, must happen every run
 @step(enable_cache=False)
 def publish(
     model_dir: str, base_model: str, metrics: dict, publish_cfg: dict,
-    train_cfg: dict, work_dir: str,
+    train_cfg: dict, work_dir: str, dataset_dir: str = "",
 ) -> str:
     token = os.environ.get("HF_TOKEN")
     if not token:
@@ -129,14 +166,28 @@ def publish(
     if (work / "sample_generations.md").exists():
         generations_md = (work / "sample_generations.md").read_text()
 
-    card = render_model_card(
-        repo_id, base_model, metrics,
-        train_cfg=train_cfg, has_loss_curve=has_loss_curve, sweep=sweep,
-        generations_md=generations_md,
-    )
+    if publish_cfg.get("card_lang") == "ko" and (work / "pii_report.json").exists():
+        from mlx_pipeline.card_ko import render_korean_pii_card
+
+        for chart in ("pii_per_type.png", "try_progression.png"):
+            if (work / chart).exists():
+                shutil.copy(work / chart, Path(model_dir) / chart)
+        card = render_korean_pii_card(
+            repo_id, base_model, work_dir, dataset_dir, train_cfg,
+            goldset_repo=publish_cfg.get("goldset_repo"),
+        )
+    else:
+        card = render_model_card(
+            repo_id, base_model, metrics,
+            train_cfg=train_cfg, has_loss_curve=has_loss_curve, sweep=sweep,
+            generations_md=generations_md,
+        )
     Path(model_dir, "README.md").write_text(card)
 
     api = HfApi(token=token)
-    api.create_repo(repo_id, private=publish_cfg.get("private", True), exist_ok=True)
+    private = publish_cfg.get("private", True)
+    api.create_repo(repo_id, private=private, exist_ok=True)
     api.upload_folder(folder_path=model_dir, repo_id=repo_id)
+    if publish_cfg.get("goldset_repo") and dataset_dir:
+        _upload_goldset(api, publish_cfg["goldset_repo"], dataset_dir, private)
     return f"https://huggingface.co/{repo_id}"

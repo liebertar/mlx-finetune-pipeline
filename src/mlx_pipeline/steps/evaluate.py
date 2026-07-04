@@ -69,12 +69,111 @@ def sample_generations(
     return samples
 
 
+def _append_ledger(metrics: dict, train_cfg: dict, dataset_dir: str, work_dir: Path):
+    """Experiment ledger: one row per try, in try order, against the fixed gold
+    set — the progression chart in the model card is drawn from this."""
+    from mlx_pipeline.charts import plot_try_progression
+
+    ledger = Path("experiments") / "pii_ledger.jsonl"
+    ledger.parent.mkdir(exist_ok=True)
+    rows = ([json.loads(line) for line in ledger.read_text().splitlines()]
+            if ledger.exists() else [])
+    n_train = len((Path(dataset_dir) / "train.jsonl").read_text().splitlines())
+    label = (f"r{train_cfg.get('rank', '?')}-lr{train_cfg.get('learning_rate', '?')}"
+             f"-b{train_cfg.get('batch_size', '?')}-n{round(n_train / 1000, 1)}k")
+    rows.append({
+        "try": len(rows) + 1,
+        "label": label,
+        "precision": metrics["precision"],
+        "recall": metrics["recall"],
+        "f1": metrics["f1"],
+        "macro_f1": metrics["macro_f1"],
+        "train_examples": n_train,
+        "params": {k: train_cfg.get(k) for k in
+                   ("rank", "learning_rate", "batch_size", "iters", "scale")},
+    })
+    with open(ledger, "a") as f:
+        f.write(json.dumps(rows[-1], ensure_ascii=False) + "\n")
+    plot_try_progression(rows, str(work_dir / "try_progression.png"))
+    return rows
+
+
+def _evaluate_pii(model: str, dataset_dir: str, adapter_path: str, work_dir: str,
+                  eval_cfg: dict, train_cfg: dict) -> dict:
+    """Generation-based PII scoring: per-type precision/recall/F1, optional
+    zero-shot baseline pass, full report + samples saved for the model card."""
+    import gc
+
+    import mlx.core as mx
+
+    from mlx_pipeline.charts import plot_pii_comparison
+    from mlx_pipeline.pii_eval import mask_text, run_pii_eval
+
+    max_examples = eval_cfg.get("max_examples")
+    tuned = run_pii_eval(model, dataset_dir, adapter_path=adapter_path,
+                         max_examples=max_examples)
+    report = {"tuned": tuned}
+    metrics = {
+        "precision": tuned["precision"],
+        "recall": tuned["recall"],
+        "f1": tuned["f1"],
+        "macro_f1": tuned["macro_f1"],
+    }
+
+    if eval_cfg.get("oot_test"):
+        # out-of-template gold set: sentence forms never seen in training —
+        # the honest generalization number, scored with the tuned adapter
+        oot = run_pii_eval(model, eval_cfg["oot_test"], adapter_path=adapter_path,
+                           max_examples=max_examples)
+        report["oot"] = oot
+        metrics["oot_f1"] = oot["f1"]
+        metrics["oot_precision"] = oot["precision"]
+        metrics["oot_recall"] = oot["recall"]
+
+    if eval_cfg.get("baseline", False):
+        gc.collect()
+        mx.clear_cache()
+        base = run_pii_eval(model, dataset_dir, adapter_path=None,
+                            max_examples=max_examples)
+        report["baseline"] = base
+        metrics["baseline_f1"] = base["f1"]
+        metrics["improvement_f1"] = tuned["f1"] - base["f1"]
+        plot_pii_comparison(tuned["per_type"], base["per_type"],
+                            str(Path(work_dir) / "pii_per_type.png"))
+
+    work = Path(work_dir)
+    (work / "pii_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    _append_ledger(metrics, train_cfg, dataset_dir, work)
+    demo = "\n\n---\n\n".join(
+        f"**입력:** {s['prompt'].split('텍스트: ')[-1]}\n\n"
+        f"**추출:** `{json.dumps([e for e in _safe_entities(s['generated'])], ensure_ascii=False)}`\n\n"
+        f"**마스킹:** {mask_text(s['prompt'].split('텍스트: ')[-1], _safe_entities(s['generated']))}"
+        for s in tuned["samples"][:3]
+    )
+    (work / "sample_generations.md").write_text(demo)
+    mlflow.log_artifact(str(work / "pii_report.json"))
+    (work / "metrics.json").write_text(json.dumps(metrics))
+    return metrics
+
+
+def _safe_entities(generated: str) -> list[dict]:
+    from mlx_pipeline.pii_eval import parse_entities
+
+    return parse_entities(generated)
+
+
 # no cache: scores whatever currently sits at adapter_path
 @step(enable_cache=False)
 def evaluate(
     flavor: str, model: str, dataset_dir: str, adapter_path: str, work_dir: str,
-    train_cfg: dict,
+    train_cfg: dict, eval_cfg: dict,
 ) -> dict:
+    if eval_cfg.get("type") == "pii":
+        metrics = _evaluate_pii(model, dataset_dir, adapter_path, work_dir,
+                                eval_cfg, train_cfg)
+        mlflow.log_metrics(metrics)
+        return metrics
+
     mask = ["--mask-prompt"] if train_cfg.get("mask_prompt") else []
     if flavor in ("llm", "embedding"):
         output = _run([
@@ -116,4 +215,5 @@ def evaluate(
         mlflow.log_artifact(str(sample_file))
 
     mlflow.log_metrics(metrics)
+    (Path(work_dir) / "metrics.json").write_text(json.dumps(metrics))
     return metrics

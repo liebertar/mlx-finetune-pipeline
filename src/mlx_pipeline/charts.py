@@ -57,6 +57,64 @@ def plot_loss_curve(history: dict, out_path: str, title: str = "Training loss"):
     return out_path
 
 
+def plot_pii_comparison(tuned: dict, baseline: dict, out_path: str):
+    """Horizontal grouped bars: per-type F1, tuned vs zero-shot base model.
+    tuned/baseline: {type: {"f1": float, ...}} keyed by Korean entity type."""
+    plt.rcParams["font.family"] = ["AppleGothic", "Arial Unicode MS", "sans-serif"]
+    plt.rcParams["axes.unicode_minus"] = False
+    types = list(tuned.keys())
+    y = range(len(types))
+    height = 0.38
+    fig, ax = plt.subplots(figsize=(8, 0.42 * len(types) + 1.5), dpi=150)
+    fig.patch.set_facecolor(SURFACE)
+    ax.set_facecolor(SURFACE)
+    ax.barh([i + height / 2 for i in y], [tuned[t]["f1"] for t in types],
+            height=height, color=SERIES[0], label="파인튜닝")
+    ax.barh([i - height / 2 for i in y], [baseline.get(t, {}).get("f1", 0.0) for t in types],
+            height=height, color=INK_MUTED, label="베이스 (zero-shot)")
+    ax.set_yticks(list(y), types, fontsize=9, color=INK)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 1.0)
+    ax.set_xlabel("F1", color=INK_MUTED, fontsize=10)
+    ax.grid(True, axis="x", color=GRID, linewidth=0.8)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(BASELINE)
+    ax.tick_params(colors=INK_MUTED, labelsize=9)
+    ax.set_title("유형별 F1 — 파인튜닝 vs 베이스", color=INK, fontsize=12, loc="left", pad=12)
+    ax.legend(frameon=False, labelcolor=INK, fontsize=9, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(out_path, facecolor=SURFACE, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_try_progression(rows: list[dict], out_path: str):
+    """Precision/recall/F1 across experiment tries (try order, not wall time).
+    rows: [{"try": 1, "label": "r16-lr1e-4-b4-n3000", "precision": .., "recall": .., "f1": ..}]"""
+    plt.rcParams["font.family"] = ["AppleGothic", "Arial Unicode MS", "sans-serif"]
+    plt.rcParams["axes.unicode_minus"] = False
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=150)
+    fig.patch.set_facecolor(SURFACE)
+    _style_axes(ax, "Try별 성능 추이 (골드셋 고정)")
+    ax.set_xlabel("try", color=INK_MUTED, fontsize=10)
+    ax.set_ylabel("score", color=INK_MUTED, fontsize=10)
+    xs = [r["try"] for r in rows]
+    for i, key in enumerate(("f1", "precision", "recall")):
+        ys = [r[key] for r in rows]
+        ax.plot(xs, ys, color=SERIES[i], linewidth=2, marker="o", markersize=5, label=key)
+        _label_line_end(ax, xs, ys, key, SERIES[i])
+    ax.set_xticks(xs, [f"#{r['try']}\n{r.get('label', '')}" for r in rows], fontsize=7)
+    ax.set_ylim(0, 1.0)
+    ax.legend(frameon=False, labelcolor=INK, fontsize=9, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(out_path, facecolor=SURFACE, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
 def plot_sweep_comparison(runs: list[dict], out_path: str):
     """runs: [{"label": "r8 lr1e-5", "val": [[iter, loss], ...]}, ...] — val-loss
     curves of each hyperparameter combination on one axis."""

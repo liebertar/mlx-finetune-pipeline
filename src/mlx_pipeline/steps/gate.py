@@ -4,8 +4,8 @@ Rules come from the `gate:` section of the config:
   must_beat_baseline -> eval_loss must be below the base model's zero-shot
                         loss on the same split (minus optional baseline_margin).
                         Self-calibrating: "did tuning actually help?"
-  max_eval_loss      -> metrics["eval_loss"] must be <= this absolute value
-  min_eval_accuracy  -> metrics["eval_accuracy"] must be >= this
+  min_<metric>       -> metrics["<metric>"] must be >= this (e.g. min_f1: 0.93)
+  max_<metric>       -> metrics["<metric>"] must be <= this (e.g. max_eval_loss: 2.5)
 
 The verdict (and each failure reason) is recorded in MLflow so runs are
 auditable even after they're pruned locally.
@@ -13,6 +13,8 @@ auditable even after they're pruned locally.
 
 import mlflow
 from zenml import step
+
+RESERVED = {"must_beat_baseline", "baseline_margin"}
 
 
 def check_gate(metrics: dict, thresholds: dict) -> tuple[bool, list[str]]:
@@ -28,16 +30,21 @@ def check_gate(metrics: dict, thresholds: dict) -> tuple[bool, list[str]]:
                 f"eval_loss {eval_loss} did not beat baseline {baseline}"
                 + (f" by margin {margin}" if margin else "")
             )
-    if "max_eval_loss" in thresholds:
-        if metrics.get("eval_loss", float("inf")) > thresholds["max_eval_loss"]:
-            failures.append(
-                f"eval_loss {metrics.get('eval_loss')} > max {thresholds['max_eval_loss']}"
-            )
-    if "min_eval_accuracy" in thresholds:
-        if metrics.get("eval_accuracy", 0.0) < thresholds["min_eval_accuracy"]:
-            failures.append(
-                f"eval_accuracy {metrics.get('eval_accuracy')} < min {thresholds['min_eval_accuracy']}"
-            )
+    for key, threshold in thresholds.items():
+        if key in RESERVED:
+            continue
+        if key.startswith("min_"):
+            metric = key[4:]
+            value = metrics.get(metric, 0.0)
+            if value < threshold:
+                failures.append(f"{metric} {value} < min {threshold}")
+        elif key.startswith("max_"):
+            metric = key[4:]
+            value = metrics.get(metric, float("inf"))
+            if value > threshold:
+                failures.append(f"{metric} {value} > max {threshold}")
+        else:
+            failures.append(f"unknown gate rule: {key}")
     return (not failures, failures)
 
 

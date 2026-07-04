@@ -19,13 +19,16 @@ def apply_override(cfg, dotted_key: str, value: str):
     target = getattr(cfg, keys[0]) if len(keys) > 1 else cfg
     for k in keys[1:-1]:
         target = target[k]
-    # YAML-ish literal coercion for numbers
-    for cast in (int, float):
-        try:
-            value = cast(value)
-            break
-        except ValueError:
-            continue
+    # YAML-ish literal coercion for booleans and numbers
+    if value.lower() in ("true", "false"):
+        value = value.lower() == "true"
+    else:
+        for cast in (int, float):
+            try:
+                value = cast(value)
+                break
+            except ValueError:
+                continue
     if len(keys) == 1:
         setattr(cfg, keys[0], value)
     else:

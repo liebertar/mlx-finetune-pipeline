@@ -1,0 +1,56 @@
+flavor: llm
+model: mlx-community/Qwen2.5-1.5B-Instruct-4bit
+
+data:
+  source: data/samples/korean_pii.jsonl   # scripts/generate_pii_dataset.py --n 3000 --seed 7
+  format: chat
+  dedup: true
+  valid_split: 0.06     # ~180 examples
+  test_split: 0.1       # ~300-example FIXED gold set (seeded split, published)
+
+train:
+  method: lora
+  rank: 16
+  scale: 2.0
+  dropout: 0.0
+  learning_rate: 1.0e-4
+  lr_schedule: cosine
+  warmup_fraction: 0.1
+  iters: 1280           # ≈ 2 epochs at batch 4 over ~2560 train examples
+  steps_per_report: 25
+  steps_per_eval: 100
+  batch_size: 4
+  mask_prompt: true     # learn only the JSON completion, not the instruction
+  seed: 42
+  max_seq_length: 1024
+
+eval:
+  type: pii             # generation-based per-type precision/recall/F1
+  baseline: true        # also score the untuned base model (zero-shot)
+  # unseen sentence forms (never in training) — the generalization number
+  oot_test: data/samples/korean_pii_oot.jsonl
+
+gate:
+  # 배포 기준 (사용자 지정): 고정 골드셋에서 98% 이상일 때만 업로드
+  min_f1: 0.98          # micro F1, fixed gold set
+  min_macro_f1: 0.98    # macro F1 — 유형별 균형까지 요구
+  min_precision: 0.97   # 과잉 마스킹(원문 훼손) 방지
+  min_recall: 0.97      # 누락(유출) 방지
+
+publish:
+  repo_id: your-hf-username/korean-pii-extractor-mlx
+  private: true
+  card_lang: ko         # 한국어 모델 카드 (성능표·차트·데이터 명세 포함)
+  goldset_repo: your-hf-username/korean-pii-goldset   # 정답지 고정본 업로드
+
+sweep:
+  select: f1
+  higher_is_better: true
+  epochs: 2             # per-combo iters derived from batch size
+  eval_overrides:       # sweeps score on a 120-example subset, no baseline pass
+    max_examples: 120
+    baseline: false
+  combos:
+    - {label: r16-lr1e-4-b4, rank: 16, learning_rate: 1.0e-4, batch_size: 4}
+    - {label: r8-lr2e-5-b4, rank: 8, learning_rate: 2.0e-5, batch_size: 4}
+    - {label: r16-lr1e-4-b8, rank: 16, learning_rate: 1.0e-4, batch_size: 8}
