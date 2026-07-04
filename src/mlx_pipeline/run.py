@@ -8,6 +8,8 @@ import argparse
 import os
 from pathlib import Path
 
+import mlflow
+
 from mlx_pipeline.config import load_config
 from mlx_pipeline.pipelines import finetune_pipeline
 
@@ -47,7 +49,15 @@ def main():
         apply_override(cfg, key, value)
 
     work_dir = args.work_dir or str(Path("outputs") / Path(args.config).stem)
-    finetune_pipeline(cfg=cfg, work_dir=work_dir, publish_enabled=not args.skip_publish)
+
+    # One explicit MLflow run per pipeline run. Steps may execute in child
+    # processes; exporting MLFLOW_RUN_ID makes every node's mlflow.log_* call
+    # attach to this run instead of each process minting its own.
+    overrides = " ".join(o.split(".")[-1] for o in args.set)  # "rank=16 learning_rate=0.0001"
+    run_name = f"{Path(args.config).stem} {overrides}".strip()
+    with mlflow.start_run(run_name=run_name) as active:
+        os.environ["MLFLOW_RUN_ID"] = active.info.run_id
+        finetune_pipeline(cfg=cfg, work_dir=work_dir, publish_enabled=not args.skip_publish)
 
 
 if __name__ == "__main__":

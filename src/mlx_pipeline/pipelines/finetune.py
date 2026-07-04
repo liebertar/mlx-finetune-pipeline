@@ -33,7 +33,7 @@ def finetune_pipeline(cfg: PipelineConfig, work_dir: str, publish_enabled: bool 
     )
     metrics = evaluate(
         flavor=cfg.flavor, model=cfg.model, dataset_dir=dataset_dir,
-        adapter_path=adapter_path, work_dir=work_dir,
+        adapter_path=adapter_path, work_dir=work_dir, train_cfg=cfg.train,
     )
     passed = gate(metrics=metrics, thresholds=cfg.gate)
     if publish_enabled:

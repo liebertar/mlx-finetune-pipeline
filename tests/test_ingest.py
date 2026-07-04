@@ -7,7 +7,7 @@ from mlx_pipeline.steps.ingest import load_records
 
 def test_loads_valid_chat_dataset():
     records = load_records("data/samples/llm_chat.jsonl", "chat")
-    assert len(records) == 20
+    assert len(records) == 60
     assert all("messages" in r for r in records)
 
 

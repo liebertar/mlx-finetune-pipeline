@@ -24,3 +24,27 @@ def test_accuracy_threshold():
 
 def test_no_thresholds_always_passes():
     assert check_gate({"eval_loss": 99.0}, {})[0]
+
+
+def test_baseline_gate_passes_when_tuning_helped():
+    metrics = {"eval_loss": 4.3, "baseline_loss": 5.5}
+    assert check_gate(metrics, {"must_beat_baseline": True})[0]
+
+
+def test_baseline_gate_fails_when_tuning_hurt():
+    metrics = {"eval_loss": 6.6, "baseline_loss": 5.5}
+    passed, failures = check_gate(metrics, {"must_beat_baseline": True})
+    assert not passed
+    assert "did not beat baseline" in failures[0]
+
+
+def test_baseline_gate_respects_margin():
+    metrics = {"eval_loss": 5.45, "baseline_loss": 5.5}
+    assert check_gate(metrics, {"must_beat_baseline": True})[0]
+    assert not check_gate(metrics, {"must_beat_baseline": True, "baseline_margin": 0.2})[0]
+
+
+def test_baseline_gate_fails_without_baseline_metric():
+    passed, failures = check_gate({"eval_loss": 4.0}, {"must_beat_baseline": True})
+    assert not passed
+    assert "no baseline_loss" in failures[0]

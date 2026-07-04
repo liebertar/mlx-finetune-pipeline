@@ -8,7 +8,8 @@ from pathlib import Path
 from zenml import step
 
 
-@step
+# no cache: merges whatever currently sits at adapter_path
+@step(enable_cache=False)
 def fuse(flavor: str, model: str, adapter_path: str, work_dir: str) -> str:
     out_dir = Path(work_dir) / "fused_model"
     module = "mlx_lm" if flavor in ("llm", "embedding") else "mlx_vlm"

@@ -1,9 +1,11 @@
 """Node 4 — evaluate: score the tuned adapter on the held-out test split.
 
-Produces eval_loss and eval_ppl (perplexity = exp(loss)), plus — for the llm
-flavor — sample generations from the test prompts so a human can judge
-whether the tuning matches the *intent*, not just the loss. Everything is
-logged to MLflow."""
+Produces eval_loss / eval_ppl for the tuned model AND baseline_loss for the
+raw base model on the same split with the same loss definition (mask_prompt
+respected in both) — so the gate can require that tuning actually helped.
+For the llm flavor it also saves sample generations from the test prompts so
+a human can judge whether the tuning matches the *intent*, not just the loss.
+Everything is logged to MLflow."""
 
 import json
 import re
@@ -20,6 +22,13 @@ def parse_test_loss(output: str) -> float:
     match = re.search(r"Test loss ([\d.]+)", output)
     if not match:
         raise RuntimeError(f"could not find test loss in trainer output:\n{output[-2000:]}")
+    return float(match.group(1))
+
+
+def parse_base_loss(output: str) -> float:
+    match = re.search(r"Base loss ([\d.]+)", output)
+    if not match:
+        raise RuntimeError(f"could not find base loss in baseline output:\n{output[-2000:]}")
     return float(match.group(1))
 
 
@@ -60,8 +69,13 @@ def sample_generations(
     return samples
 
 
-@step
-def evaluate(flavor: str, model: str, dataset_dir: str, adapter_path: str, work_dir: str) -> dict:
+# no cache: scores whatever currently sits at adapter_path
+@step(enable_cache=False)
+def evaluate(
+    flavor: str, model: str, dataset_dir: str, adapter_path: str, work_dir: str,
+    train_cfg: dict,
+) -> dict:
+    mask = ["--mask-prompt"] if train_cfg.get("mask_prompt") else []
     if flavor in ("llm", "embedding"):
         output = _run([
             sys.executable, "-m", "mlx_lm", "lora",
@@ -72,9 +86,20 @@ def evaluate(flavor: str, model: str, dataset_dir: str, adapter_path: str, work_
             # tiny test splits (smoke datasets) are smaller than the default
             # eval batch size of 4
             "--batch-size", "1",
+            *mask,
         ])
         loss = parse_test_loss(output)
-        metrics = {"eval_loss": loss, "eval_ppl": exp(loss)}
+        base_output = _run([
+            sys.executable, "-m", "mlx_pipeline.baseline",
+            "--model", model, "--data", dataset_dir, *mask,
+        ])
+        base_loss = parse_base_loss(base_output)
+        metrics = {
+            "eval_loss": loss,
+            "eval_ppl": exp(loss),
+            "baseline_loss": base_loss,
+            "improvement_over_base": base_loss - loss,
+        }
     else:
         # mlx-vlm has no --test mode yet; TODO: sample generations + scoring
         raise NotImplementedError("vlm evaluation not implemented yet")

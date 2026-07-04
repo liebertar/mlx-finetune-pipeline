@@ -40,7 +40,8 @@ def dedupe(records: list[dict]) -> tuple[list[dict], int]:
     return unique, len(records) - len(unique)
 
 
-@step
+# no cache: reads a path — file contents can change under the same path
+@step(enable_cache=False)
 def ingest(source: str, fmt: str, dedup: bool = True) -> list[dict]:
     records = load_records(source, fmt)
     n_dropped = 0

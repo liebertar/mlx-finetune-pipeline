@@ -107,7 +107,8 @@ def parse_history(output: str) -> dict:
     }
 
 
-@step
+# no cache: writes adapters into a mutable work_dir
+@step(enable_cache=False)
 def train(flavor: str, model: str, dataset_dir: str, train_cfg: dict, work_dir: str) -> str:
     cmd = build_command(flavor, model, dataset_dir, train_cfg, work_dir)
     mlflow.log_params({"flavor": flavor, "model": model, **train_cfg})

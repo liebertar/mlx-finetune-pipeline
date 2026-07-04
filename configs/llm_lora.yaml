@@ -19,12 +19,12 @@ train:
   lr_schedule: cosine   # cosine decay after warmup
   warmup_fraction: 0.1  # 10% of iters
   # iters = dataset_size * epochs / batch_size — keep to 1-3 epochs.
-  # 30 ≈ 3 epochs for the 20-example smoke dataset; scale this up with your data.
-  # (An earlier sweep at 200 iters = ~100 epochs overfit catastrophically:
-  # val loss 9.1 at lr 1e-4. The gate caught it.)
-  iters: 30
-  steps_per_report: 2
-  steps_per_eval: 5
+  # 72 ≈ 3 epochs for the 60-example smoke dataset (48 train); scale with your data.
+  # (An earlier sweep at ~100 epochs overfit catastrophically: val loss 9.1
+  # at lr 1e-4. The gate caught it.)
+  iters: 72
+  steps_per_report: 4
+  steps_per_eval: 8
   batch_size: 2
   grad_accumulation_steps: 4   # effective batch 8 at 1/4 the memory
   mask_prompt: true     # train on completions only — free accuracy on chat data
@@ -33,9 +33,11 @@ train:
   # max_seq_length: 2048
 
 gate:
-  # Calibrated for the 20-example smoke dataset (unseen-val loss ~2.5-3 is
-  # normal at this scale). Tighten this for real datasets.
-  max_eval_loss: 3.2
+  # Self-calibrating gate: the tuned model's test loss must beat the base
+  # model's zero-shot loss on the same split — i.e. tuning must actually help.
+  # Add max_eval_loss for an absolute ceiling on real datasets.
+  must_beat_baseline: true
+  # baseline_margin: 0.1   # optionally require beating base by this much
 
 publish:
   repo_id: your-hf-username/qwen2.5-1.5b-demo-lora

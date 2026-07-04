@@ -104,7 +104,8 @@ def render_model_card(
     )
 
 
-@step
+# no cache: uploading is a side effect, must happen every run
+@step(enable_cache=False)
 def publish(
     model_dir: str, base_model: str, metrics: dict, publish_cfg: dict,
     train_cfg: dict, work_dir: str,
