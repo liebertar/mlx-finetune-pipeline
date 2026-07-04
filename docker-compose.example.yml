@@ -29,7 +29,7 @@ services:
     ports:
       # Host port comes from .env.local. Default 5001 because macOS AirPlay
       # Receiver occupies port 5000.
-      - "${MLFLOW_HOST_PORT:-5001}:5000"
+      - "127.0.0.1:${MLFLOW_HOST_PORT:-5001}:5000"
     volumes:
       # Runs/metrics/artifacts persist here across restarts (gitignored).
       - ./volumes/mlflow:/mlflow
@@ -40,7 +40,7 @@ services:
     image: zenmldocker/zenml-server:latest
     container_name: mlx-pipeline-zenml
     ports:
-      - "${ZENML_HOST_PORT:-8080}:8080"
+      - "127.0.0.1:${ZENML_HOST_PORT:-8080}:8080"
     environment:
       # Auto-activates the server on first boot so no setup wizard is needed.
       ZENML_SERVER_AUTO_ACTIVATE: "1"

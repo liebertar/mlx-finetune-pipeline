@@ -14,6 +14,22 @@ from pathlib import Path
 
 JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
+TYPES = [
+    "사람 이름", "주민등록번호", "외국인등록번호", "여권번호", "운전면허번호",
+    "전화번호", "이메일 주소", "계좌번호", "신용카드번호", "사업자등록번호",
+    "주소", "우편번호", "회사명", "직책", "사번",
+]
+
+# The single canonical task instruction. The frozen gold sets store only
+# (text, entities); this instruction is applied at eval time so every try
+# scores against the identical prompt.
+INSTRUCTION = (
+    "다음 텍스트에서 개인정보(PII)를 모두 찾아 JSON으로 추출하세요. "
+    "유형: " + ", ".join(TYPES) + ". "
+    '출력 형식: {"entities": [{"type": "...", "text": "..."}]} '
+    "(개인정보가 없으면 빈 배열)\n\n텍스트: "
+)
+
 
 def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip())
@@ -92,6 +108,14 @@ def load_test_records(dataset_dir: str, max_examples: int | None = None) -> list
     records = []
     for line in lines:
         rec = json.loads(line)
+        if "text" in rec:  # flat answer-key format: {text, entities, difficulty}
+            records.append({
+                "prompt": INSTRUCTION + rec["text"],
+                "gold": [{"type": e["type"], "text": normalize(e["text"])}
+                         for e in rec["entities"]],
+                "difficulty": rec.get("difficulty", "easy"),
+            })
+            continue
         prompt = next(m["content"] for m in rec["messages"] if m["role"] == "user")
         gold_raw = next(m["content"] for m in rec["messages"] if m["role"] == "assistant")
         records.append({
