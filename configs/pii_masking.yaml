@@ -22,6 +22,7 @@ train:
   steps_per_report: 25
   steps_per_eval: 100
   batch_size: 4
+  grad_checkpoint: true # 7B + 무인 장기 실행: 속도 20~30% 내주고 OOM 안전 확보
   mask_prompt: true     # learn only the JSON completion, not the instruction
   seed: 42
   max_seq_length: 1024
