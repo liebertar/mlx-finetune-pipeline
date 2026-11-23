@@ -4,7 +4,7 @@ Builds chat-format SFT examples: user turn = extraction instruction + text with
 injected PII, assistant turn = JSON entity list. Because entities are injected,
 gold labels are exact — precision/recall on the held-out split is rigorous.
 
-Entity taxonomy (15 types) matches common Korean PII categories.
+Entity taxonomy (15 types) covers common Korean PII categories.
 
 Usage: python scripts/generate_pii_dataset.py --n 1300 --seed 7 \
            --out data/samples/korean_pii.jsonl
